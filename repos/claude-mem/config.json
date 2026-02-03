@@ -1,0 +1,39 @@
+{
+  "repo": "thedotmack/claude-mem",
+  "fork": "Glucksberg/claude-mem",
+  "localPath": "/home/dev/projects/claude-mem",
+  "mainBranch": "main",
+  "productionBranch": "main-with-all-prs",
+  "upstreamRemote": "upstream",
+  "originRemote": "origin",
+  "openPRs": [823, 831, 833, 834, 835, 836, 837],
+  "prBranches": {
+    "823": "fix/issue-760-folder-claudemd-enabled-setting",
+    "831": "fix/gemini-model-name-clean",
+    "833": "fix/issue-716-pragma-foreign-keys",
+    "834": "fix/issue-793-git-repo-detection",
+    "835": "fix/issue-798-parser-nested-tags",
+    "836": "fix/issue-814-duplicate-path-segments",
+    "837": "fix/issue-832-isolate-observer-sessions"
+  },
+  "prTitles": {
+    "823": "fix: check CLAUDE_MEM_FOLDER_CLAUDEMD_ENABLED setting",
+    "831": "fix: correct Gemini model name",
+    "833": "fix: add PRAGMA foreign_keys to cleanup-duplicates.ts",
+    "834": "fix: detect subdirectories inside git repos",
+    "835": "fix: handle nested XML tags in parser",
+    "836": "fix: prevent nested duplicate directory creation",
+    "837": "fix: isolate observer sessions from /resume"
+  },
+  "prIssues": {
+    "823": "760",
+    "831": null,
+    "833": "716",
+    "834": "793",
+    "835": "798",
+    "836": "814",
+    "837": "832"
+  },
+  "lastSync": "2026-01-28T13:10:00Z",
+  "lastCheck": "2026-01-28T14:33:00Z"
+}
