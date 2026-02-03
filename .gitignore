@@ -13,3 +13,6 @@ Thumbs.db
 *.tmp
 *.bak
 *.log
+
+# Local repository configs (cada usuário tem os seus)
+repos/*/config.json

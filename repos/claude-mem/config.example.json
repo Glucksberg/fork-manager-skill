@@ -1,0 +1,18 @@
+{
+  "repo": "anthropics/claude-mem",
+  "fork": "your-username/claude-mem",
+  "localPath": "/path/to/local/clone",
+  "mainBranch": "main",
+  "productionBranch": "main-with-all-prs",
+  "upstreamRemote": "upstream",
+  "forkRemote": "origin",
+  "openPRs": [
+    123,
+    456
+  ],
+  "prBranches": {
+    "123": "fix/some-issue",
+    "456": "feat/new-feature"
+  },
+  "lastSync": "2026-02-03T12:00:00Z"
+}
