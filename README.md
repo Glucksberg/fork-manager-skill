@@ -6,22 +6,65 @@ Skill para gerenciar forks de repositórios onde você contribui com PRs mas tam
 
 ```
 fork-manager/
+├── .git/                 # Repositório Git
+├── .gitignore            # Ignora configs locais
 ├── SKILL.md              # Instruções completas para o agente
 ├── README.md             # Este arquivo
+├── ARCHITECTURE.md       # Decisões de design e arquitetura
 └── repos/
     ├── openclaw/         # Config do fork OpenClaw
-    │   └── config.json
+    │   ├── config.json             (local only - não versionado)
+    │   └── config.example.json     (template versionado)
     └── claude-mem/       # Config do fork Claude-mem
-        └── config.json
+        ├── config.json             (local only - não versionado)
+        └── config.example.json     (template versionado)
 ```
 
-## Locais Sincronizados
+## Instalação
 
-Esta skill está disponível em 3 locais via symlink:
+```bash
+# 1. Clonar o repositório
+git clone https://github.com/Glucksberg/fork-manager-skill.git /path/to/fork-manager
 
-1. **Origem (standalone):** `/home/dev/agents/fork-manager/`
-2. **OpenClaw (clawdbot):** `/home/dev/clawdbot/skills/fork-manager/` → symlink
-3. **Claude Code CLI:** Quando rodado dentro de clawdbot, enxerga automaticamente
+# 2. Criar configs locais a partir dos exemplos
+cd /path/to/fork-manager
+cp repos/openclaw/config.example.json repos/openclaw/config.json
+cp repos/claude-mem/config.example.json repos/claude-mem/config.json
+
+# 3. Editar com suas informações
+vim repos/openclaw/config.json
+
+# 4. Configurar para OpenClaw (global para todos os agentes)
+openclaw config set skills.load.extraDirs '["/path/to/parent/directory"]'
+# Exemplo: se fork-manager está em /home/dev/agents/fork-manager
+# Adicione: ["/home/dev/agents"]
+
+# 5. Configurar para Claude Code CLI
+ln -s /path/to/fork-manager ~/.claude/skills/fork-manager
+```
+
+## Integração com CLIs
+
+### OpenClaw
+A skill é carregada via `extraDirs` no config global:
+```json
+// ~/.openclaw/openclaw.json
+{
+  "skills": {
+    "load": {
+      "extraDirs": ["/home/dev/agents"]
+    }
+  }
+}
+```
+
+### Claude Code CLI
+A skill é carregada via symlink:
+```bash
+~/.claude/skills/fork-manager → /path/to/fork-manager
+```
+
+**Importante:** Ambos os CLIs leem/escrevem no mesmo local, evitando duplicação.
 
 ## Comandos Disponíveis
 
@@ -49,10 +92,31 @@ Esta skill está disponível em 3 locais via symlink:
 
 ## Uso
 
-Leia o `SKILL.md` para instruções completas de como usar esta skill.
+### Via OpenClaw
+```bash
+cd /tmp  # Qualquer diretório
+openclaw
+# "Use fork-manager skill para fazer full-sync do openclaw"
+```
+
+### Via Claude Code CLI
+```bash
+cd /tmp  # Qualquer diretório
+claude
+# "Use fork-manager skill para fazer full-sync do openclaw"
+```
+
+Leia o `SKILL.md` para instruções completas dos comandos disponíveis.
+
+## Documentação
+
+- **[README.md](README.md)** - Este arquivo (visão geral e instalação)
+- **[SKILL.md](SKILL.md)** - Instruções completas para o agente
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Decisões de design e arquitetura
 
 ## Nomenclatura
 
-- **OpenClaw** = nome atual do projeto
-- **moltbot** = nome antigo do OpenClaw
-- **clawdbot** = nome do fork local (Glucksberg/clawdbot)
+- **OpenClaw** = CLI multi-provider (não é fork do Claude Code)
+- **Claude Code CLI** = CLI oficial da Anthropic
+- **moltbot** = nome antigo do projeto OpenClaw
+- **clawdbot** = nome do fork local do OpenClaw (Glucksberg/clawdbot)
