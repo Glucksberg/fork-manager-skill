@@ -177,6 +177,12 @@ cd <localPath>
 git fetch <upstreamRemote>
 git fetch <originRemote>
 
+# ⚠️ SEMPRE preservar arquivos não-commitados antes de trocar de branch
+if [ -n "$(git status --porcelain)" ]; then
+  git stash push --include-untracked -m "fork-manager: pre-build-production $(date -u +%Y%m%dT%H%M%S)"
+  STASHED=1
+fi
+
 # Deletar branch antiga se existir
 git branch -D <productionBranch> 2>/dev/null || true
 
@@ -192,17 +198,24 @@ done
 # Push
 git push <originRemote> <productionBranch> --force
 
+# Restaurar arquivos não-commitados
+if [ "$STASHED" = "1" ]; then
+  git stash pop
+fi
+
 # Build
 bun run build
 ```
 
 ### `full-sync` - Sincronização completa
 
-1. `sync` - Atualizar main
-2. `update-config` - Atualizar lista de PRs
-3. `rebase-all` - Rebase de todas as branches
-4. `build-production` - Recriar branch de produção
-5. `bun run build` - Rebuild
+1. **Stash** - `git stash --include-untracked` se houver arquivos não-commitados
+2. `sync` - Atualizar main
+3. `update-config` - Atualizar lista de PRs
+4. `rebase-all` - Rebase de todas as branches
+5. `build-production` - Recriar branch de produção
+6. **Pop stash** - `git stash pop` para restaurar arquivos locais
+7. `bun run build` - Rebuild
 
 ## Relatório para o Usuário
 
@@ -238,8 +251,34 @@ Após qualquer operação, gerar relatório:
 - Sempre usar `--force-with-lease` em vez de `--force` para push
 - Sempre fazer backup antes de operações destrutivas
 - Usar `bun run` em vez de `npm run`
-- Verificar se há trabalho não commitado antes de operações git
 - Manter o config atualizado após cada operação
+
+### ⚠️ Proteger arquivos não-commitados antes de operações destrutivas
+
+Antes de qualquer operação que troca de branch ou deleta/recria branches (especialmente `build-production` e `full-sync`), **sempre** verificar e preservar arquivos unstaged, untracked e staged:
+
+```bash
+cd <localPath>
+
+# 1. Checar se há arquivos em risco
+git status --porcelain
+
+# 2. Se houver arquivos modificados/untracked, fazer stash com untracked
+git stash push --include-untracked -m "fork-manager: pre-sync stash $(date -u +%Y%m%dT%H%M%S)"
+
+# 3. Executar a operação (rebase, checkout, merge, etc.)
+# ...
+
+# 4. Após concluir, restaurar o stash
+git stash pop
+```
+
+**Por quê?** Ao deletar e recriar a branch de produção (`git branch -D <productionBranch>`), arquivos que existiam apenas no working directory (não commitados) são perdidos permanentemente. Isso inclui:
+- Arquivos gerados (dashboards, history, state)
+- Arquivos de configuração local (serve.ts, .env)
+- Dados acumulados (JSON, SQLite)
+
+**Regra:** Se `git status --porcelain` retornar qualquer saída, fazer `git stash --include-untracked` antes de prosseguir. Restaurar com `git stash pop` ao final.
 
 ## Exemplo de Uso
 
