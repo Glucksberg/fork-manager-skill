@@ -1,158 +1,111 @@
-# Fork Manager - Arquitetura e Decisões de Design
+# Fork Manager - Architecture & Design Decisions
 
-Este documento explica a arquitetura do fork-manager e as decisões tomadas durante seu desenvolvimento.
+## Overview
 
-## Visão Geral
-
-Fork Manager é uma skill reutilizável que funciona em múltiplos ambientes:
+Fork Manager is a reusable skill that works across multiple LLM agent environments:
 
 - **Claude Code CLI** (Anthropic)
 - **OpenClaw** (multi-provider LLM CLI)
+- **Any agent** that supports the AgentSkills format
 
-A skill não é um script executável, mas sim um **documento de instruções** (SKILL.md) que agentes LLM leem e executam.
+The skill is not an executable script — it's an **instruction document** (SKILL.md) that LLM agents read and execute using existing tools (git, gh).
 
-## Estrutura de Diretórios
+## Directory Structure
 
 ```
 fork-manager/
-├── .git/                           # Repositório Git
-├── .gitignore                      # Ignora configs locais
-├── README.md                       # Documentação do projeto
-├── SKILL.md                        # Instruções para o agente
-├── ARCHITECTURE.md                 # Este arquivo
+├── .git/
+├── .gitignore
+├── README.md
+├── SKILL.md                        # Agent instructions
+├── ARCHITECTURE.md                 # This file
 └── repos/
-    ├── openclaw/
-    │   ├── config.json             # Local only (gitignored)
-    │   └── config.example.json     # Template versionado
-    └── claude-mem/
+    └── <project-name>/
         ├── config.json             # Local only (gitignored)
-        └── config.example.json     # Template versionado
+        └── config.example.json     # Versioned template
 ```
 
-## Decisões Arquiteturais
+## Architectural Decisions
 
-### 1. Configs são Local-Only
+### 1. Configs are Local-Only
 
-**Decisão:** Arquivos `config.json` não são versionados no Git.
+**Decision:** `config.json` files are not versioned in Git.
 
-**Razão:**
+**Reason:**
+- Contains environment-specific information (local paths, PR lists, sync history)
+- Each user's fork setup is unique
 
-- Contêm informações específicas do ambiente de cada usuário
-- Paths locais (`/home/dev/clawdbot`)
-- Lista de PRs específicos do fork do usuário
-- Histórico de sincronização pessoal
-
-**Implementação:**
-
-- `.gitignore` contém `repos/*/config.json`
-- Templates `config.example.json` são versionados como documentação
+**Implementation:**
+- `.gitignore` contains `repos/*/config.json`
+- Templates `config.example.json` are versioned as documentation
 
 ### 2. Skill vs Plugin
 
-**Decisão:** Fork-manager é uma **skill**, não um plugin.
+**Decision:** Fork-manager is a **skill**, not a plugin.
 
-**Diferença:**
+| | Skill | Plugin |
+|---|---|---|
+| Format | Markdown document | Executable code |
+| Execution | Agent reads and follows instructions | Adds new tools/capabilities |
+| Portability | Works across any compatible agent | CLI-specific |
 
-- **Skill:** Documento MD que o agente lê e executa (sem código)
-- **Plugin:** Adiciona novas ferramentas/capacidades ao CLI (com código)
+**Reason:** Fork-manager only orchestrates existing tools (git, gh). No new CLI functionality needed.
 
-**Razão:**
+### 3. Multi-Repo Structure
 
-- Fork-manager apenas orquestra ferramentas existentes (git, gh)
-- Não precisa de nova funcionalidade no CLI
-- Mais simples e portátil entre diferentes CLIs
+**Decision:** One directory per repository under `repos/`.
 
-### 3. Estrutura Multi-Repo
+**Reason:**
+- Users can manage multiple forks
+- Each repo has its own config and history
+- Scales easily — just add a new directory
 
-**Decisão:** Um diretório por repositório em `repos/`.
+### 4. Distribution
 
-**Razão:**
+Available via:
+- **GitHub**: `git clone https://github.com/Glucksberg/fork-manager-skill.git`
+- **ClawHub**: `clawhub install fork-manager`
 
-- Usuários podem gerenciar múltiplos forks
-- Cada repo tem suas próprias configurações
-- Escalável para adicionar novos repos facilmente
-
-**Exemplos de uso:**
-
-- `repos/openclaw/` - Fork do OpenClaw
-- `repos/claude-mem/` - Fork do Claude-mem
-- `repos/your-project/` - Futuros projetos
-
-### 4. Distribuição via GitHub
-
-**Decisão:** Repositório público no GitHub.
-
-**Razão:**
-
-- Facilita instalação via `git clone`
-- Permite contribuições da comunidade
-- Templates `.example.json` servem como documentação
-
-**Uso:**
-
-```bash
-git clone https://github.com/Glucksberg/fork-manager-skill.git
-cp repos/openclaw/config.example.json repos/openclaw/config.json
-# Editar config.json com suas informações
-```
-
-## Integração com CLIs
+## Integration
 
 ### OpenClaw
 
-**Método:** Config global via `extraDirs`
-
-**Configuração:**
+Loaded via `extraDirs` in global config:
 
 ```json
-// ~/.openclaw/openclaw.json
 {
   "skills": {
     "load": {
-      "extraDirs": ["/home/dev/agents"]
+      "extraDirs": ["/path/to/agents"]
     }
   }
 }
 ```
 
-**Razão para extraDirs vs Workspace:**
-
-- Fork-manager gerencia **múltiplos projetos** (openclaw + claude-mem)
-- Não é específico de um único workspace
-- Disponível para todos os agentes OpenClaw
-- Evita redundância de symlinks
-
-**Precedência no OpenClaw:**
-
-1. `<workspace>/skills/` (highest)
-2. `~/.openclaw/skills/`
-3. Bundled skills
-4. `extraDirs` (lowest)
-
 ### Claude Code CLI
 
-**Método:** Symlink em `~/.claude/skills/`
-
-**Implementação:**
+Loaded via symlink:
 
 ```bash
-ln -s /home/dev/agents/fork-manager ~/.claude/skills/fork-manager
+ln -s /path/to/fork-manager ~/.claude/skills/fork-manager
 ```
 
-**Razão:**
+### ClawHub
 
-- Claude Code CLI não tem conceito de `extraDirs`
-- Skills vêm de plugins ou `~/.claude/skills/`
-- Symlink evita duplicação de código
+```bash
+clawhub install fork-manager
+```
 
-## Fluxo de Dados
+Both CLIs read/write from the **same location** — no data duplication.
+
+## Data Flow
 
 ```
 ┌─────────────────────────────────────────┐
-│  Origem (Única Fonte da Verdade)       │
-│  /home/dev/agents/fork-manager/         │
+│  Single Source of Truth                 │
+│  /path/to/fork-manager/                 │
 │  - Git repository                       │
-│  - Configs locais (não versionados)     │
+│  - Local configs (not versioned)        │
 └─────────────────────────────────────────┘
                   │
       ┌───────────┴───────────┐
@@ -164,66 +117,19 @@ ln -s /home/dev/agents/fork-manager ~/.claude/skills/fork-manager
 └──────────────┘      └──────────────────┘
 ```
 
-**Importante:** Ambos os CLIs leem/escrevem no **mesmo local**:
+## Future Evolution
 
-- Não há duplicação de dados
-- Mudanças em qualquer CLI afetam a origem
-- Git rastreia mudanças em um único lugar
+### Possible Improvements
+- [ ] Helper scripts for common operations
+- [ ] Templates for popular repos
+- [ ] GitHub Actions integration for automatic sync
 
-## Casos de Uso
+### Not Planned
+- ❌ Converting to executable plugin (keeps simplicity as instruction-based skill)
+- ❌ Versioned configs (configs remain local and user-specific)
 
-### Sync do OpenClaw
+## References
 
-```bash
-cd /tmp  # Qualquer diretório
-openclaw
-# "Use fork-manager skill para fazer full-sync do openclaw"
-```
-
-### Sync via Claude Code CLI
-
-```bash
-cd /tmp  # Qualquer diretório
-claude
-# "Use fork-manager skill para fazer full-sync do openclaw"
-```
-
-### Uso Standalone
-
-```bash
-cd /home/dev/agents/fork-manager
-vim repos/openclaw/config.json
-git add repos/openclaw/config.json
-git commit -m "update: sync openclaw PRs"
-```
-
-## Evolução Futura
-
-### Possíveis Melhorias
-
-- [ ] Script auxiliar para automatizar operações comuns
-- [ ] Templates para outros repos populares
-- [ ] Integração com GitHub Actions para sync automático
-- [ ] Plugin do Claude Code para comandos diretos
-
-### Não Planejado
-
-- ❌ Transformar em plugin com código executável
-  - Mantém simplicidade como skill baseada em instruções
-- ❌ Configurações versionadas
-  - Configs permanecem locais e específicos do usuário
-
-## Contribuindo
-
-Para adicionar suporte a um novo repositório:
-
-1. Criar diretório em `repos/novo-repo/`
-2. Adicionar `config.example.json` com template
-3. Documentar no README.md
-4. Commit e PR
-
-## Referências
-
-- [AgentSkills Spec](https://agentskills.io) - Padrão de skills
 - [OpenClaw Skills Docs](https://github.com/openclaw/openclaw/blob/main/docs/tools/skills.md)
-- [GitHub Fork Manager](https://github.com/Glucksberg/fork-manager-skill)
+- [ClawHub](https://clawhub.ai)
+- [GitHub Repo](https://github.com/Glucksberg/fork-manager-skill)

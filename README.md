@@ -1,60 +1,57 @@
 # Fork Manager Skill
 
-Skill para gerenciar forks de repositórios onde você contribui com PRs mas também usa as melhorias antes de serem mergeadas no upstream.
+Manage forks where you contribute PRs but also use improvements before they're merged upstream. Includes support for local patches — fixes kept in the production branch even when the upstream PR was closed/rejected.
 
-## Estrutura
+## Structure
 
 ```
 fork-manager/
-├── .git/                 # Repositório Git
-├── .gitignore            # Ignora configs locais
-├── SKILL.md              # Instruções completas para o agente
-├── README.md             # Este arquivo
-├── ARCHITECTURE.md       # Decisões de design e arquitetura
+├── SKILL.md              # Full agent instructions
+├── README.md             # This file
+├── ARCHITECTURE.md       # Design decisions and architecture
 └── repos/
-    ├── openclaw/         # Config do fork OpenClaw
-    │   ├── config.json             (local only - não versionado)
-    │   └── config.example.json     (template versionado)
-    └── claude-mem/       # Config do fork Claude-mem
-        ├── config.json             (local only - não versionado)
-        └── config.example.json     (template versionado)
+    └── <project-name>/
+        ├── config.json             (local only - not versioned)
+        └── config.example.json     (versioned template)
 ```
 
-## Instalação
+## Installation
 
 ```bash
-# 1. Clonar o repositório
+# 1. Clone the repository
 git clone https://github.com/Glucksberg/fork-manager-skill.git /path/to/fork-manager
 
-# 2. Criar configs locais a partir dos exemplos
+# 2. Create local configs from examples
 cd /path/to/fork-manager
-cp repos/openclaw/config.example.json repos/openclaw/config.json
-cp repos/claude-mem/config.example.json repos/claude-mem/config.json
+cp repos/<project>/config.example.json repos/<project>/config.json
 
-# 3. Editar com suas informações
-vim repos/openclaw/config.json
+# 3. Edit with your info
+vim repos/<project>/config.json
 
-# 4. Configurar para OpenClaw (global para todos os agentes)
+# 4. Configure for OpenClaw (global for all agents)
 openclaw config set skills.load.extraDirs '["/path/to/parent/directory"]'
-# Exemplo: se fork-manager está em /home/dev/agents/fork-manager
-# Adicione: ["/home/dev/agents"]
 
-# 5. Configurar para Claude Code CLI
+# 5. Configure for Claude Code CLI
 ln -s /path/to/fork-manager ~/.claude/skills/fork-manager
 ```
 
-## Integração com CLIs
+### Via ClawHub
+
+```bash
+clawhub install fork-manager
+```
+
+## Integration
 
 ### OpenClaw
 
-A skill é carregada via `extraDirs` no config global:
+The skill is loaded via `extraDirs` in the global config:
 
 ```json
-// ~/.openclaw/openclaw.json
 {
   "skills": {
     "load": {
-      "extraDirs": ["/home/dev/agents"]
+      "extraDirs": ["/path/to/agents"]
     }
   }
 }
@@ -62,69 +59,37 @@ A skill é carregada via `extraDirs` no config global:
 
 ### Claude Code CLI
 
-A skill é carregada via symlink:
+The skill is loaded via symlink:
 
 ```bash
 ~/.claude/skills/fork-manager → /path/to/fork-manager
 ```
 
-**Importante:** Ambos os CLIs leem/escrevem no mesmo local, evitando duplicação.
+## Available Commands
 
-## Comandos Disponíveis
+- `status` - Check current fork state
+- `sync` - Sync main with upstream
+- `rebase <branch>` - Rebase a specific branch
+- `rebase-all` - Rebase all PR branches
+- `update-config` - Update config with current PRs
+- `build-production` - Create production branch with all PRs + local patches
+- `review-closed` - Review recently closed PRs (keep/drop/resubmit)
+- `review-patches` - Re-evaluate existing local patches
+- `audit-open` - Audit open PRs for redundancy/obsolescence
+- `full-sync` - Full sync (all of the above in sequence)
 
-- `status` - Verificar estado atual do fork
-- `sync` - Sincronizar main com upstream
-- `rebase <branch>` - Rebase de uma branch específica
-- `rebase-all` - Rebase de todas as branches de PR
-- `update-config` - Atualizar config com PRs atuais
-- `build-production` - Criar branch de produção com todos os PRs
-- `full-sync` - Sincronização completa (sync + rebase-all + build-production)
-
-## Projetos Gerenciados
-
-### OpenClaw
-
-- **Upstream:** openclaw/openclaw
-- **Fork:** Glucksberg/clawdbot
-- **Local:** /home/dev/clawdbot
-- **Branch de produção:** main-with-all-prs
-
-### Claude-mem
-
-- **Upstream:** anthropics/claude-mem
-- **Fork:** Glucksberg/claude-mem
-- **Local:** /home/dev/claude-mem
-- **Branch de produção:** (conforme configurado)
-
-## Uso
-
-### Via OpenClaw
+## Usage
 
 ```bash
-cd /tmp  # Qualquer diretório
-openclaw
-# "Use fork-manager skill para fazer full-sync do openclaw"
+# Via OpenClaw or Claude Code CLI:
+# "Use fork-manager to do a full-sync of my-project"
+# "Check the status of my fork"
+# "Sync and rebase all PR branches"
 ```
 
-### Via Claude Code CLI
+See `SKILL.md` for complete agent instructions.
 
-```bash
-cd /tmp  # Qualquer diretório
-claude
-# "Use fork-manager skill para fazer full-sync do openclaw"
-```
+## Documentation
 
-Leia o `SKILL.md` para instruções completas dos comandos disponíveis.
-
-## Documentação
-
-- **[README.md](README.md)** - Este arquivo (visão geral e instalação)
-- **[SKILL.md](SKILL.md)** - Instruções completas para o agente
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Decisões de design e arquitetura
-
-## Nomenclatura
-
-- **OpenClaw** = CLI multi-provider (não é fork do Claude Code)
-- **Claude Code CLI** = CLI oficial da Anthropic
-- **moltbot** = nome antigo do projeto OpenClaw
-- **clawdbot** = nome do fork local do OpenClaw (Glucksberg/clawdbot)
+- **[SKILL.md](SKILL.md)** - Complete agent instructions
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Design decisions and architecture

@@ -1,24 +1,21 @@
 {
-  "repo": "openclaw/openclaw",
-  "fork": "your-username/your-fork-name",
+  "repo": "owner/repo",
+  "fork": "your-username/your-fork",
   "localPath": "/path/to/local/clone",
   "mainBranch": "main",
   "productionBranch": "main-with-all-prs",
   "upstreamRemote": "upstream",
   "forkRemote": "origin",
-  "openPRs": [6475, 6474, 6473],
+  "openPRs": [123, 456],
   "prBranches": {
-    "6475": "fix/ui-inline-logo-svg",
-    "6474": "fix/telegram-restart-account-routing",
-    "6473": "fix/telegram-dm-topics-threadid"
+    "123": "fix/some-issue",
+    "456": "feat/new-feature"
   },
-  "lastSync": "2026-02-03T12:00:00Z",
+  "localPatches": {},
+  "lastSync": "2026-01-01T00:00:00Z",
   "notes": {
-    "removedPRs": {
-      "5925": "Replaced by clean PR #8014"
-    },
-    "newPRs": {
-      "6475-6471": "New PRs from Feb 2026"
-    }
+    "mergedUpstream": {},
+    "closedWithoutMerge": {},
+    "droppedPatches": {}
   }
 }

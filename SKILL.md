@@ -1,40 +1,32 @@
 ---
 name: fork-manager
-description: Manage forks with open PRs - sync upstream, rebase branches, track PR status, and maintain production branches with pending contributions.
-metadata:
-  { "moltbot": { "emoji": "🍴", "os": ["darwin", "linux"], "requires": { "bins": ["git", "gh"] } } }
+description: Manage forks with open PRs - sync upstream, rebase branches, track PR status, and maintain production branches with pending contributions. Use when syncing forks, rebasing PR branches, building production branches that combine all open PRs, reviewing closed/rejected PRs, or managing local patches kept outside upstream.
 ---
 
 # Fork Manager Skill
 
-Skill para gerenciar forks de repositórios onde você contribui com PRs mas também usa as melhorias antes de serem mergeadas no upstream. Inclui suporte para patches locais — correções mantidas na branch de produção mesmo quando o PR upstream foi fechado/rejeitado.
+Manage forks where you contribute PRs but also use improvements before they're merged upstream. Includes support for local patches — fixes kept in the production branch even when the upstream PR was closed/rejected.
 
-## Quando usar
+## When to use
 
-- Usuário pede para atualizar/sincronizar um fork
-- Usuário quer saber status dos PRs abertos
-- Usuário quer fazer rebase das branches de PR
-- Usuário quer criar uma branch de produção com todos os PRs
-- Usuário quer revisar PRs recém-fechados/rejeitados e decidir se mantém localmente
-- Usuário quer gerenciar patches locais (fixes que não são PRs upstream)
+- Sync a fork with upstream
+- Check status of open PRs
+- Rebase PR branches onto latest upstream
+- Build a production branch combining all open PRs + local patches
+- Review recently closed/rejected PRs and decide whether to keep locally
+- Manage local patches (fixes not submitted or rejected upstream)
 
-## Configuração
+## Configuration
 
-A skill está disponível em 3 locais sincronizados via symlink:
-
-- `/home/dev/agents/fork-manager/` (origem standalone)
-- `/home/dev/clawdbot/skills/fork-manager/` (symlink)
-- Quando usar Claude Code CLI dentro de clawdbot, enxerga as skills automaticamente
-
-Configs ficam organizados por repositório em `repos/<repo-name>/config.json`:
+Configs are organized per repository in `repos/<repo-name>/config.json` relative to the skill directory:
 
 ```
 fork-manager/
 ├── SKILL.md
 └── repos/
-    ├── openclaw/          # Fork do projeto OpenClaw (antigo moltbot)
+    ├── project-a/
     │   └── config.json
-    └── claude-mem/        # Fork do projeto Claude-mem
+    └── project-b/
         └── config.json
 ```
 
@@ -93,10 +85,10 @@ Cada repositório gerenciado tem um arquivo `history.md` que registra todas as e
 ```
 fork-manager/
 └── repos/
-    ├── openclaw/
+    ├── project-a/
     │   ├── config.json
     │   └── history.md
-    └── claude-mem/
+    └── project-b/
         ├── config.json
         └── history.md
 ```
@@ -150,16 +142,14 @@ Se o arquivo não existir, criar com o header e prosseguir normalmente.
 
 ### 1. Carregar config e histórico
 
-Primeiro, descobrir o caminho da skill (funciona em qualquer dos 3 locais):
+Resolve the skill directory (where SKILL.md lives):
 
 ```bash
-# Se rodando como skill do Claude Code dentro de clawdbot
-SKILL_DIR="skills/fork-manager"
+# SKILL_DIR is the directory containing this SKILL.md
+# Resolve it relative to the agent's workspace or skill install path
+SKILL_DIR="<path-to-fork-manager-skill>"
 
-# Se rodando como skill standalone
-SKILL_DIR="/home/dev/agents/fork-manager"
-
-# Carregar config do repo específico
+# Load config for the target repo
 cat "$SKILL_DIR/repos/<repo-name>/config.json"
 
 # Ler último output do history para contexto
@@ -473,10 +463,9 @@ git push <originRemote> <productionBranch> --force
 if [ "$STASHED" = "1" ]; then
   git stash pop
 fi
-
-# Build
-bun run build
 ```
+
+**After rebuilding the production branch, remind the user to run their project's build command if needed.**
 
 **Ordem de merge:** PRs abertos primeiro (ordem crescente por número), local patches depois. Isso garante que patches locais se aplicam sobre a base mais completa possível.
 
@@ -524,7 +513,7 @@ Para cada entry em `localPatches` cuja `reviewDate` já passou:
 7. `rebase-all` - Rebase de todas as branches (PRs + local patches)
 8. `build-production` - Recriar branch de produção (PRs + local patches)
 9. **Pop stash** - `git stash pop` para restaurar arquivos locais
-10. `bun run build` - Rebuild
+10. Remind user to run their project's build command if needed
 
 **Nota sobre ordem:** `audit-open` roda **depois** de `review-closed` porque os PRs fechados já foram processados e removidos do config. Assim o audit só analisa PRs genuinamente abertos, sem falsos positivos de PRs que acabaram de ser fechados.
 
@@ -586,7 +575,7 @@ Após qualquer operação, gerar relatório:
 
 - Sempre usar `--force-with-lease` em vez de `--force` para push
 - Sempre fazer backup antes de operações destrutivas
-- Usar `bun run` em vez de `npm run`
+- Use the project's package manager for build commands (bun/npm/yarn/pnpm)
 - Manter o config atualizado após cada operação
 - **Local patches são cidadãos de primeira classe:** rebase, build e relatório incluem tanto PRs abertos quanto local patches
 - **Nunca remover automaticamente um PR fechado sem merge.** Sempre passar pelo fluxo `review-closed` para decisão do usuário
@@ -621,16 +610,28 @@ git stash pop
 
 **Regra:** Se `git status --porcelain` retornar qualquer saída, fazer `git stash --include-untracked` antes de prosseguir. Restaurar com `git stash pop` ao final.
 
-## Exemplo de Uso
+## Security Notice
 
-Usuário: "atualiza meu fork do claude-mem"
+This skill performs operations that require broad filesystem and network access by design:
 
-Agente:
+- **Git operations**: fetch, checkout, merge, rebase, push across multiple remotes and branches
+- **GitHub CLI**: reads PR status, creates PRs, queries repo metadata
+**Before using this skill on a repository:**
+- All git push operations use `--force-with-lease` (not `--force`) to prevent data loss
+- The skill always stashes uncommitted files before destructive branch operations
 
-1. Lê config de `~/.clawdbot/fork-manager/claude-mem.json`
-2. Executa `status` para entender situação atual
-3. Se main está atrás, executa `sync`
-4. Se PRs precisam rebase, executa `rebase-all`
-5. Atualiza `productionBranch` se necessário
-6. Executa `bun run build`
-7. Reporta resultado ao usuário
+These capabilities are inherent to fork management and cannot be removed without breaking core functionality.
+
+## Usage Example
+
+User: "sync my fork of project-x"
+
+Agent:
+
+1. Load config from `$SKILL_DIR/repos/project-x/config.json`
+2. Run `status` to assess current state
+3. If main is behind, run `sync`
+4. If PRs need rebase, run `rebase-all`
+5. Update `productionBranch` if needed
+6. Remind user to rebuild if needed
+7. Report results to user
