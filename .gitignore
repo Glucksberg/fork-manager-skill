@@ -14,5 +14,6 @@ Thumbs.db
 *.bak
 *.log
 
-# Local repository configs (cada usuário tem os seus)
+# Local repository configs and history (cada usuário tem os seus)
 repos/*/config.json
+repos/*/history.md

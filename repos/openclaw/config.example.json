@@ -6,11 +6,7 @@
   "productionBranch": "main-with-all-prs",
   "upstreamRemote": "upstream",
   "forkRemote": "origin",
-  "openPRs": [
-    6475,
-    6474,
-    6473
-  ],
+  "openPRs": [6475, 6474, 6473],
   "prBranches": {
     "6475": "fix/ui-inline-logo-svg",
     "6474": "fix/telegram-restart-account-routing",

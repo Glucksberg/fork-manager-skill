@@ -46,7 +46,9 @@ ln -s /path/to/fork-manager ~/.claude/skills/fork-manager
 ## Integração com CLIs
 
 ### OpenClaw
+
 A skill é carregada via `extraDirs` no config global:
+
 ```json
 // ~/.openclaw/openclaw.json
 {
@@ -59,7 +61,9 @@ A skill é carregada via `extraDirs` no config global:
 ```
 
 ### Claude Code CLI
+
 A skill é carregada via symlink:
+
 ```bash
 ~/.claude/skills/fork-manager → /path/to/fork-manager
 ```
@@ -79,12 +83,14 @@ A skill é carregada via symlink:
 ## Projetos Gerenciados
 
 ### OpenClaw
+
 - **Upstream:** openclaw/openclaw
 - **Fork:** Glucksberg/clawdbot
 - **Local:** /home/dev/clawdbot
 - **Branch de produção:** main-with-all-prs
 
 ### Claude-mem
+
 - **Upstream:** anthropics/claude-mem
 - **Fork:** Glucksberg/claude-mem
 - **Local:** /home/dev/claude-mem
@@ -93,6 +99,7 @@ A skill é carregada via symlink:
 ## Uso
 
 ### Via OpenClaw
+
 ```bash
 cd /tmp  # Qualquer diretório
 openclaw
@@ -100,6 +107,7 @@ openclaw
 ```
 
 ### Via Claude Code CLI
+
 ```bash
 cd /tmp  # Qualquer diretório
 claude
