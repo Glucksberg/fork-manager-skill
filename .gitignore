@@ -16,4 +16,9 @@ Thumbs.db
 
 # Local repository configs and history (cada usuário tem os seus)
 repos/*/config.json
+repos/*/config.json.bak*
 repos/*/history.md
+repos/*/checkpoint.json
+
+# Keep example configs
+!repos/example/
