@@ -733,7 +733,6 @@ Após qualquer operação, gerar relatório:
 
 - **Main branch:** X commits behind upstream
 - **Last sync:** <date>
-- **pr-ship:** context updated + published vX.Y.Z | no changelog changes | skipped (no upstream changes)
 
 ### Open PRs (Y total)
 
