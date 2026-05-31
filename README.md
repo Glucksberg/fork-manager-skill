@@ -7,6 +7,8 @@ Manage forks where you contribute PRs but also use improvements before they're m
 ```
 fork-manager/
 ├── SKILL.md              # Full agent instructions
+├── scripts/
+│   └── update-config.mjs # Deterministic GitHub → config reconciliation
 ├── README.md             # This file
 ├── ARCHITECTURE.md       # Design decisions and architecture
 └── repos/
@@ -88,6 +90,22 @@ The skill is loaded via symlink:
 ```
 
 See `SKILL.md` for complete agent instructions.
+
+### Deterministic Config Refresh
+
+`openPRs` and `prBranches` are a local cache. Refresh them from GitHub before
+rebasing or rebuilding a production branch:
+
+```bash
+node scripts/update-config.mjs --repo-name claude-mem
+node scripts/update-config.mjs --repo-name claude-mem --check
+node scripts/update-config.mjs --repo-name claude-mem --dry-run
+```
+
+The script adds new open PRs, updates changed head branches, restores reopened
+PRs, removes no-longer-open PRs from the open cache, and records merged/closed
+PRs in `notes` for the review steps. By default it uses the owner from
+`config.fork` as the GitHub PR author filter, with `@me` as a fallback.
 
 ## Documentation
 

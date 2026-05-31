@@ -92,6 +92,8 @@ Configs are organized per repository in `repos/<repo-name>/config.json` relative
 ```
 fork-manager/
 ├── SKILL.md
+├── scripts/
+│   └── update-config.mjs
 └── repos/
     ├── project-a/
     │   └── config.json
@@ -134,6 +136,23 @@ Formato do `config.json`:
   }
 }
 ```
+
+### PR tracking source of truth
+
+`openPRs` and `prBranches` are a **local cache**, not the source of truth.
+The source of truth for open PRs is GitHub.
+
+Before any command that depends on the PR set (`status`, `rebase-all`,
+`build-production`, `full-sync`, `audit-open`), run:
+
+```bash
+node <skillDir>/scripts/update-config.mjs --config <skillDir>/repos/<repo-name>/config.json
+```
+
+Use `--check` to verify without writing and `--dry-run` to print the updated
+JSON. Do not build production from a stale `openPRs` list. A config that is
+missing an open PR by the configured fork owner is incomplete and must be
+updated before rebasing or rebuilding production.
 
 ### Resolução automática de conflitos (`autoResolveConflicts`)
 
@@ -589,11 +608,29 @@ Após `resolve-conflicts`, o `build-production` roda normalmente. Branches que f
 ### `update-config` - Atualizar config com PRs atuais
 
 ```bash
-# Buscar PRs abertos
-gh pr list --state open --author @me --repo <repo> --json number,headRefName
+node <skillDir>/scripts/update-config.mjs --config <skillDir>/repos/<repo-name>/config.json
+```
 
-# Atualizar o arquivo $SKILL_DIR/repos/<repo-name>/config.json com os PRs atuais
-# Usar jq ou editar manualmente o JSON
+The script queries GitHub with `gh pr list --state open --author <fork owner>`
+(or `--author @me` when no `fork` is configured), treats GitHub as canonical for
+open PRs, and rewrites `openPRs` + `prBranches` as a cache of the current open
+set.
+
+It also:
+
+- adds new open PRs automatically
+- updates branch names when a PR head branch changes
+- restores reopened PRs from `notes.closedWithoutMerge` / `notes.droppedPatches`
+- promotes reopened local patches back into `openPRs`
+- removes no-longer-open PRs from `openPRs`
+- records merged PRs in `notes.mergedUpstream`
+- records closed-without-merge PRs in `notes.closedWithoutMerge` with `reviewStatus: "pending"`
+
+Useful modes:
+
+```bash
+node <skillDir>/scripts/update-config.mjs --config <config.json> --check
+node <skillDir>/scripts/update-config.mjs --config <config.json> --dry-run
 ```
 
 #### Detecção de PRs reabertos
@@ -623,6 +660,10 @@ git fetch <originRemote> <branch> 2>/dev/null || git fetch <originRemote> pull/<
 **Nota:** A restauração é automática (sem interação) porque o mantenedor reabrir um PR é sinal claro de que ele deve voltar ao tracking. O relatório sempre lista os PRs restaurados para visibilidade.
 
 ### `build-production` - Criar branch de produção com todos os PRs + local patches
+
+Before rebuilding, run `update-config` and report any difference between the
+GitHub open-PR set and the cached config. Continue only after the config includes
+all currently open PRs by the authenticated contributor.
 
 ```bash
 cd <localPath>
@@ -710,7 +751,7 @@ Para cada entry em `localPatches` cuja `reviewDate` já passou:
    - Hooks are defined per-repo in `config.json` under `"postSyncHooks"` (array of shell commands or descriptions)
    - Example: detect CHANGELOG changes, update downstream skills, trigger CI
    - If no hooks configured: skip this step entirely
-4. `update-config` - Atualizar lista de PRs
+4. `update-config` - Atualizar lista de PRs a partir do GitHub (obrigatório; `openPRs` é cache)
 5. **`review-closed`** - Revisar PRs recém-fechados/mergeados (interativo)
 6. **`audit-open`** - Auditar PRs abertos por redundância/obsolescência (interativo)
 7. **`review-patches`** - Reavaliar local patches com reviewDate vencida (interativo)

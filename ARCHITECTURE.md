@@ -117,10 +117,28 @@ Both CLIs read/write from the **same location** — no data duplication.
 └──────────────┘      └──────────────────┘
 ```
 
+## Deterministic Helpers
+
+The skill remains instruction-first, but critical state reconciliation should be
+deterministic when possible.
+
+### `scripts/update-config.mjs`
+
+This helper treats GitHub as the source of truth for currently open PRs by the
+authenticated contributor and treats `openPRs` / `prBranches` as a local cache.
+Agents should run it before `status`, `rebase-all`, `build-production`, and
+`full-sync`.
+
+The helper intentionally does not decide whether a closed-unmerged PR should be
+kept as a local patch. It removes no-longer-open PRs from the open cache and
+records them under `notes.closedWithoutMerge` with `reviewStatus: "pending"` so
+the interactive `review-closed` flow can make that policy decision.
+
 ## Future Evolution
 
 ### Possible Improvements
-- [ ] Helper scripts for common operations
+- [x] Helper script for GitHub → config PR reconciliation
+- [ ] Helper scripts for additional common operations
 - [ ] Templates for popular repos
 - [ ] GitHub Actions integration for automatic sync
 
